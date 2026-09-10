@@ -1,0 +1,76 @@
+// OUISSAS QUALITÉ — base de données hébergée (PostgreSQL, ex. Neon).
+// L'URL de connexion vient de la variable d'environnement DATABASE_URL,
+// configurée dans le tableau de bord Vercel (jamais écrite en dur ici).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Rôles possibles (vérifiés en TypeScript, pas en enum natif — SQLite
+// gère mal les enums, donc on reste en String simple ici) :
+// ADMIN | QUALITY_MANAGER | DIRECTION | PROCESS_OWNER | AUDITOR | COLLABORATOR | READER
+
+model Company {
+  id          String   @id @default(cuid())
+  name        String
+  sector      String?
+  logoUrl     String?
+  address     String?
+  city        String?
+  country     String?
+  employees   Int?
+  codePattern String   @default("{TYPE}-{PROCESS}-{NUMBER}")
+  createdAt   DateTime @default(now())
+
+  users     User[]
+  sites     Site[]
+  processes Process[]
+}
+
+model User {
+  id           String   @id @default(cuid())
+  companyId    String
+  company      Company  @relation(fields: [companyId], references: [id])
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         String   @default("COLLABORATOR")
+  siteId       String?
+  site         Site?    @relation(fields: [siteId], references: [id])
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+}
+
+model Site {
+  id        String   @id @default(cuid())
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id])
+  code      String
+  name      String
+  type      String
+  city      String?
+  address   String?
+  employees Int?
+  active    Boolean  @default(true)
+  users     User[]
+
+  @@unique([companyId, code])
+}
+
+model Process {
+  id        String  @id @default(cuid())
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
+  code      String
+  name      String
+  type      String
+  owner     String?
+  purpose   String?
+
+  @@unique([companyId, code])
+}
