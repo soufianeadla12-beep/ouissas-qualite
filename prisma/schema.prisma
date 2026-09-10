@@ -138,10 +138,11 @@ model Document {
   type         String
   process      String?
   version      String    @default("1.0")
-  status       String    @default("brouillon") // brouillon|en_revision|a_approuver|approuve|publie|obsolete|archive
+  status       String    @default("brouillon")
   author       String?
   dateCreated  DateTime  @default(now())
   dateRevision DateTime?
+  content      Json?
 
   @@unique([companyId, code])
 }

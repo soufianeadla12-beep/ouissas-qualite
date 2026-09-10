@@ -48,4 +48,17 @@ export const api = {
   moveAction: (id: string, status: string) => request(`/api/actions/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) }),
   risks: () => request('/api/risks'),
   createRisk: (data: any) => request('/api/risks', { method: 'POST', body: JSON.stringify(data) }),
+  createProcedure: (data: any) => request('/api/documents/generate', { method: 'POST', body: JSON.stringify(data) }),
+  downloadProcedureDocx: async (id: string, filename: string) => {
+    const token = getToken();
+    const res = await fetch(`/api/documents/${id}/docx`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+    if (!res.ok) throw new Error('Le téléchargement a échoué.');
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  },
 };
