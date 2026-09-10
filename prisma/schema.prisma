@@ -30,6 +30,13 @@ model Company {
   users     User[]
   sites     Site[]
   processes Process[]
+  diagnosticResponses DiagnosticResponse[]
+  documents           Document[]
+  nonConformities     NonConformity[]
+  correctiveActions   CorrectiveAction[]
+  risks               Risk[]
+  suppliers           Supplier[]
+  objectives          Objective[]
 }
 
 model User {
@@ -73,4 +80,145 @@ model Process {
   purpose   String?
 
   @@unique([companyId, code])
+}
+
+// Référentiel qualité — configurable, pas codé en dur dans plusieurs
+// fichiers. Permet d'ajouter d'autres normes (ISO 14001, 45001...) plus
+// tard sans reconstruire l'application (voir architecture initiale, §10).
+model Standard {
+  id      String   @id @default(cuid())
+  code    String   @unique
+  name    String
+  clauses Clause[]
+}
+
+model Clause {
+  id           String        @id @default(cuid())
+  standardId   String
+  standard     Standard      @relation(fields: [standardId], references: [id])
+  code         String
+  title        String
+  requirements Requirement[]
+
+  @@unique([standardId, code])
+}
+
+model Requirement {
+  id          String               @id @default(cuid())
+  clauseId    String
+  clause      Clause               @relation(fields: [clauseId], references: [id])
+  code        String
+  question    String
+  explanation String?
+  responses   DiagnosticResponse[]
+
+  @@unique([clauseId, code])
+}
+
+model DiagnosticResponse {
+  id            String      @id @default(cuid())
+  companyId     String
+  company       Company     @relation(fields: [companyId], references: [id])
+  requirementId String
+  requirement   Requirement @relation(fields: [requirementId], references: [id])
+  status        String? // conforme | partiel | non_conforme | na
+  comment       String?
+  evidence      String?
+  updatedAt     DateTime    @updatedAt
+
+  @@unique([companyId, requirementId])
+}
+
+model Document {
+  id           String    @id @default(cuid())
+  companyId    String
+  company      Company   @relation(fields: [companyId], references: [id])
+  code         String
+  title        String
+  type         String
+  process      String?
+  version      String    @default("1.0")
+  status       String    @default("brouillon") // brouillon|en_revision|a_approuver|approuve|publie|obsolete|archive
+  author       String?
+  dateCreated  DateTime  @default(now())
+  dateRevision DateTime?
+
+  @@unique([companyId, code])
+}
+
+model NonConformity {
+  id          String             @id @default(cuid())
+  companyId   String
+  company     Company            @relation(fields: [companyId], references: [id])
+  ref         String
+  date        DateTime           @default(now())
+  process     String?
+  description String
+  origin      String?
+  severity    String             @default("mineure") // mineure|majeure|critique
+  status      String             @default("ouverte")  // ouverte|en_analyse|action_en_cours|en_verification|cloturee
+  closed      Boolean            @default(false)
+  actions     CorrectiveAction[]
+
+  @@unique([companyId, ref])
+}
+
+model CorrectiveAction {
+  id              String         @id @default(cuid())
+  companyId       String
+  company         Company        @relation(fields: [companyId], references: [id])
+  code            String
+  description     String
+  owner           String?
+  deadline        DateTime?
+  priority        String         @default("Moyenne")
+  status          String         @default("a_faire") // a_faire|en_cours|en_verification|cloture
+  nonConformityId String?
+  nonConformity   NonConformity? @relation(fields: [nonConformityId], references: [id])
+
+  @@unique([companyId, code])
+}
+
+model Risk {
+  id          String  @id @default(cuid())
+  companyId   String
+  company     Company @relation(fields: [companyId], references: [id])
+  ref         String
+  process     String?
+  risk        String
+  cause       String?
+  consequence String?
+  probability Int
+  severity    Int
+  owner       String?
+  status      String  @default("identifie")
+  controls    String?
+
+  @@unique([companyId, ref])
+}
+
+model Supplier {
+  id         String  @id @default(cuid())
+  companyId  String
+  company    Company @relation(fields: [companyId], references: [id])
+  name       String
+  activity   String?
+  quality    Int     @default(0)
+  price      Int     @default(0)
+  delay      Int     @default(0)
+  reactivity Int     @default(0)
+  status     String  @default("identifie")
+}
+
+model Objective {
+  id        String  @id @default(cuid())
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
+  objective String
+  kpi       String
+  target    Float
+  current   Float
+  unit      String?
+  owner     String?
+  process   String?
 }
