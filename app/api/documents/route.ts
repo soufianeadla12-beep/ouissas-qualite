@@ -16,7 +16,8 @@ export async function POST(req: NextRequest) {
   if (!title || !type) return NextResponse.json({ message: 'Titre et type requis.' }, { status: 400 });
 
   const count = await prisma.document.count({ where: { companyId: user.companyId } });
-  const prefix = { Politique: 'POL', Manuel: 'MAN', Procédure: 'PROC', Instruction: 'INS', 'Mode opératoire': 'MOP', Formulaire: 'FOR', Rapport: 'RAP' }[type] || 'DOC';
+  const prefixMap: Record<string, string> = { Politique: 'POL', Manuel: 'MAN', Procédure: 'PROC', Instruction: 'INS', 'Mode opératoire': 'MOP', Formulaire: 'FOR', Rapport: 'RAP' };
+  const prefix = prefixMap[type as string] || 'DOC';
   const code = `${prefix}-${String(count + 1).padStart(3, '0')}`;
 
   const doc = await prisma.document.create({
